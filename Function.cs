@@ -3,6 +3,13 @@ using System.Net.Http.Headers;
 using System.Text;
 using Amazon.Lambda.APIGatewayEvents;
 using System.Text.Json;
+using Amazon.BedrockRuntime;
+using Amazon.BedrockRuntime.Model;
+using Amazon.Util;
+using System.Reflection.Metadata.Ecma335;
+using System.Text.Json.Nodes;
+using Amazon;
+using System.Net.Http;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -18,81 +25,116 @@ public class Function
     /// </summary> 
     /// <param name="context">The ILambdaContext that provides methods for logging and describing the Lambda environment.</param>
     /// <returns></returns>
-    public APIGatewayProxyResponse FunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
+    public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
     {
+        var token = "EAAHfeKlXMv8BO0PRP4RZAER7lNDwW8Ij88tWtcvESbh4Cvp2q6fIIU9zwKACLazNS5fLWFVP87ZCZAcWN5ZAwESPs3UCoOxduZBR7NbPIIQZCWOBZBfhJ0BX4vaxirBWue9jRuIExBvAs2fJCDw51bsEDadLXa69w1kYlIFmIRQMsmMtkqEKzDYb3wyPqCYNaOor4JjM0Rb8tghxee7PT1ZAswz7VR0ZD";
+
         try
         {
-            Console.WriteLine("request: "+ JsonSerializer.Serialize(request));
-            // Lê o corpo da solicitação
+            Console.WriteLine("request: " + JsonSerializer.Serialize(request));
             var requestBody = JsonSerializer.Deserialize<RootObject>(request.Body);
             Console.WriteLine("requestBody: " + JsonSerializer.Serialize(requestBody));
 
             if (requestBody != null && requestBody.@object != null && requestBody.entry[0].id != null)
             {
-                var messageId = requestBody.entry[0].id;/* extrair o ID da mensagem do payload */;
-
-                if (processedMessageIds.Contains(messageId))
+                if (requestBody.entry[0].changes[0].value.messages[0].id != null)
                 {
-                    return new APIGatewayProxyResponse
+                    var messageId = requestBody.entry[0].changes[0].value.messages[0].id;
+
+                    if (processedMessageIds.Contains(messageId))
                     {
-                        StatusCode = 200,
-                        Body = "Duplicate message received.",
-                        Headers = new Dictionary<string, string>
+                        return new APIGatewayProxyResponse
                         {
-                            { "Content-Type", "application/json" }
-                        }
-                    };
-                }
-
-                // Adicionar o ID ao conjunto de processados
-                processedMessageIds.Add(messageId);
-
-                var url = "https://graph.facebook.com/v20.0/501924736326787/messages";
-                var token = "EAAHfeKlXMv8BO88oPUp8LpC51DV8Q2HPFisEj6AM3ZAVIX8lZB3ZC9H51f81eNZCapFvqtsn0C7KVO12q9kZB2CzsSyTRu8tVdkTLZBMcMbUXC4y7s3lzX7gkCTRLyLCWqIpUdlr3THhHX8GejxetlAylI2vYDuiurfsTl9ke3YUFh7FCmdyYLnenIJfEl9pKeAB7ykryJN5NnH3DVjwP1YJ9ZAkZAYZD";
-
-                var messageData = new
-                {
-                    messaging_product = "whatsapp",
-                    to = "5511942302556",
-                    type = "text",
-                    text = new
-                    {
-                        body = "testes corpo msg"
+                            StatusCode = 200,
+                            Body = "Duplicate message received.",
+                            Headers = new Dictionary<string, string>
+                            {
+                                { "Content-Type", "application/json" }
+                            }
+                        };
                     }
-                };
 
-                var json = JsonSerializer.Serialize(messageData);
+                    // Adicionar o ID ao conjunto de processados
+                    processedMessageIds.Add(messageId);
+                    var result = string.Empty;
+                    var json = string.Empty;
+                    var url = "https://graph.facebook.com/v20.0/501924736326787/messages";
 
-                using (var client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                    var response = client.PostAsync(url, content).Result;
-                    response.EnsureSuccessStatusCode(); 
-
-                    // Criando uma resposta
-                    return new APIGatewayProxyResponse
+                    if (requestBody.entry[0].changes[0].value.messages[0].type == "image")
+                    { 
+                        var id_img = requestBody.entry[0].changes[0].value.messages[0].image.id;
+                        var messageDataImg = new
+                        {
+                            messaging_product = "whatsapp",
+                            recipient_type = "individual",
+                            to = "+5511942302556",
+                            type = "image",
+                            image = new
+                            {
+                                id = requestBody.entry[0].changes[0].value.messages[0].image.id,
+                                caption = "caption"
+                            }
+                        };
+                        json = JsonSerializer.Serialize(messageDataImg);
+                    }
+                    else
                     {
-                        StatusCode = 200,
-                        Body = "Message processed successfully.",
-                        Headers = new Dictionary<string, string>
+                        string inputText = requestBody.entry[0].changes[0].value.messages[0].text.body;
+                        result = await this.InvokeModelAsync(inputText);
+
+                        Console.WriteLine("Resultado do modelo:");
+                        Console.WriteLine(result);
+
+                        var messageData = new
+                        {
+                            messaging_product = "whatsapp",
+                            to = "5511942302556",
+                            type = "text",
+                            text = new
+                            {
+                                body = result
+                            }
+                        };
+                        json = JsonSerializer.Serialize(messageData);
+                    }
+
+                    using (var client = new HttpClient())
+                    {
+                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                        var response = await client.PostAsync(url, content);
+                        response.EnsureSuccessStatusCode();
+
+                        // Criando uma resposta
+                        return new APIGatewayProxyResponse
+                        {
+                            StatusCode = 200,
+                            Body = "Message processed successfully.",
+                            Headers = new Dictionary<string, string>
                         {
                             { "Content-Type", "application/json" }
                         }
+                        };
+                    }
+                }
+                else
+                {
+                    return new APIGatewayProxyResponse
+                    {
+                        StatusCode = 403,
+                        Body = "NOK2"
                     };
                 }
             }
             else
             {
-                Console.WriteLine("NOK2");
-                // Resposta padrão para outros casos
                 return new APIGatewayProxyResponse
                 {
-                    StatusCode = 200,
-                    Body = "NOK2"
+                    StatusCode = 403,
+                    Body = "NOK3"
                 };
             }
         }
@@ -101,11 +143,63 @@ public class Function
             return new APIGatewayProxyResponse
             {
                 StatusCode = 500,
-                Body = e.Message
+                Body = "NOK4"
             };
         }
     }
+
+    public async Task<string> InvokeModelAsync(string userMessage)
+    {
+        // Create a Bedrock Runtime client in the AWS Region you want to use.
+        var client = new AmazonBedrockRuntimeClient(RegionEndpoint.USEast1);
+
+        // Set the model ID, e.g., Titan Text Premier.
+        var modelId = "amazon.titan-text-premier-v1:0";
+
+        // Define the user message.
+        //var userMessage = "Describe the purpose of a 'hello world' program in one line.";
+
+        //Format the request payload using the model's native structure.
+        var nativeRequest = JsonSerializer.Serialize(new
+        {
+            inputText = userMessage + " e me responda sempre em portugues",
+            textGenerationConfig = new
+            {
+                maxTokenCount = 512,
+                temperature = 0.5
+            }
+        });
+
+        // Create a request with the model ID and the model's native request payload.
+        var request = new InvokeModelRequest()
+        {
+            ModelId = modelId,
+            Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(nativeRequest)),
+            ContentType = "application/json"
+        };
+
+        try
+        {
+            // Send the request to the Bedrock Runtime and wait for the response.
+            var response = await client.InvokeModelAsync(request);
+
+            // Decode the response body.
+            var modelResponse = await JsonNode.ParseAsync(response.Body);
+
+            // Extract and print the response text.
+            var responseText = modelResponse["results"]?[0]?["outputText"] ?? "";
+            Console.WriteLine(responseText);
+            return responseText.ToString();
+        }
+        catch (AmazonBedrockRuntimeException e)
+        {
+            Console.WriteLine($"ERROR: Can't invoke '{modelId}'. Reason: {e.Message}");
+            throw;
+        }
+    }
 }
+
+
 
 public class APIGatewayProxyRequest
 {
@@ -159,9 +253,41 @@ public class Message
     public string timestamp { get; set; }
     public Text text { get; set; }
     public string type { get; set; }
+    public Image image { get; set; }
+
+    public Audio audio { get; set; }
+}
+
+public class Audio
+{
+    public string id { get; set; } 
+
+}
+
+public class Image
+{
+    public string id { get; set; }
+    public string caption { get; set; }
+    public string mime_type { get; set; }
+    public string sha256 { get; set; }
+
 }
 
 public class Text
 {
     public string body { get; set; }
+}
+
+
+public class ResponseImg
+{
+    public string url { get; set; }
+
+    public string mime_type { get; set; }
+
+    public string messaging_product { get; set; }
+
+    public int file_size { get; set; }
+
+    public string sha256 { get; set; }
 }
