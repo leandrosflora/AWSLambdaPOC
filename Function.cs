@@ -27,10 +27,39 @@ public class Function
     /// <returns></returns>
     public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
     {
-        var token = "EAAHfeKlXMv8BO0PRP4RZAER7lNDwW8Ij88tWtcvESbh4Cvp2q6fIIU9zwKACLazNS5fLWFVP87ZCZAcWN5ZAwESPs3UCoOxduZBR7NbPIIQZCWOBZBfhJ0BX4vaxirBWue9jRuIExBvAs2fJCDw51bsEDadLXa69w1kYlIFmIRQMsmMtkqEKzDYb3wyPqCYNaOor4JjM0Rb8tghxee7PT1ZAswz7VR0ZD";
+        var token = "EAAHfeKlXMv8BO75jFTgm9pfDGb7q1EzRvqQseTikOtTzmZAJo21cVMxqHtFmFHsawXTlckXZBD4NEdvxp4Svumxevc9DjxxF4YqyRlsEyKCLOhIowdSJrtp5Wy9cQJPAOKRSqtgzbOUbrz9fHB1g19ZAZAp7ZBXhHGy8WEm2hsymZBMsZBTKvYBRNHJgsJrfMixeCNhJJIZBwV1MfUjRao2Nxw4jhwIZD";
 
         try
-        {
+        { 
+            var queryStringParameters = request.QueryStringParameters;
+
+            // Inicializando variáveis
+            string mode = queryStringParameters != null && queryStringParameters.ContainsKey("hub.mode")
+                ? queryStringParameters["hub.mode"]
+                : null;
+
+            string challenge = queryStringParameters != null && queryStringParameters.ContainsKey("hub.challenge")
+                ? queryStringParameters["hub.challenge"]
+                : null;
+
+            string verifyToken = queryStringParameters != null && queryStringParameters.ContainsKey("hub.verify_token")
+                ? queryStringParameters["hub.verify_token"]
+                : null;
+
+            // Verificando se o verify token é válido
+            if (verifyToken == "leandro")
+            {
+                return new APIGatewayProxyResponse
+                {
+                    StatusCode = 200,
+                    Body = challenge,
+                    Headers = new Dictionary<string, string>
+                    {
+                        { "Content-Type", "text/plain" }
+                    }
+                }; 
+            }
+
             Console.WriteLine("request: " + JsonSerializer.Serialize(request));
             var requestBody = JsonSerializer.Deserialize<RootObject>(request.Body);
             Console.WriteLine("requestBody: " + JsonSerializer.Serialize(requestBody));
