@@ -5,8 +5,6 @@ VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWSLambdaPOC", "AWSLambdaPOC.csproj", "{E4207797-BF64-4066-A673-0DB0AAB9856A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AWSLambdaWebhook", "..\AWSLambdaWebhook\AWSLambdaWebhook.csproj", "{C8A5744A-E3A1-4C73-B2EC-D7C43C8B0439}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,10 +15,6 @@ Global
 		{E4207797-BF64-4066-A673-0DB0AAB9856A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E4207797-BF64-4066-A673-0DB0AAB9856A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4207797-BF64-4066-A673-0DB0AAB9856A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C8A5744A-E3A1-4C73-B2EC-D7C43C8B0439}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8A5744A-E3A1-4C73-B2EC-D7C43C8B0439}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C8A5744A-E3A1-4C73-B2EC-D7C43C8B0439}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8A5744A-E3A1-4C73-B2EC-D7C43C8B0439}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

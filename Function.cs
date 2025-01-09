@@ -5,11 +5,9 @@ using Amazon.Lambda.APIGatewayEvents;
 using System.Text.Json;
 using Amazon.BedrockRuntime;
 using Amazon.BedrockRuntime.Model;
-using Amazon.Util;
-using System.Reflection.Metadata.Ecma335;
 using System.Text.Json.Nodes;
 using Amazon;
-using System.Net.Http;
+using AWSLambdaPOC.Entidades;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -18,134 +16,232 @@ namespace AWSLambdaPOC;
 
 public class Function
 {
-    HashSet<string> processedMessageIds = new HashSet<string>();
+    string result = string.Empty;
+    string json = string.Empty;
+    const string url = "https://graph.facebook.com/v20.0/519842974541275/messages";
+    const string token = "EAARKw58BssABO7lShK8dZByUZBAMiZCEHw65KYVMVZCMzfZBmC9XMo0ror4jYeUD5VAFZBmC2lCvftp3oZA98JEYGfciZCe8lAJ1tO1Itg29lYyAoKQtn03T3IUEmgG04ZByNQtNJMcQ2MrZCEGaM3faxUa8ZBtfKLsrajAcl78VTOjEhu08e96rj34oASyl3Yk78TP";
 
-    /// <summary>
-    /// A simple function that takes a string and does a ToUpper
-    /// </summary> 
-    /// <param name="context">The ILambdaContext that provides methods for logging and describing the Lambda environment.</param>
-    /// <returns></returns>
-    public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequest request, ILambdaContext context)
+    public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequestMeta request, ILambdaContext context)
     {
-        var token = "EAAHfeKlXMv8BO0PRP4RZAER7lNDwW8Ij88tWtcvESbh4Cvp2q6fIIU9zwKACLazNS5fLWFVP87ZCZAcWN5ZAwESPs3UCoOxduZBR7NbPIIQZCWOBZBfhJ0BX4vaxirBWue9jRuIExBvAs2fJCDw51bsEDadLXa69w1kYlIFmIRQMsmMtkqEKzDYb3wyPqCYNaOor4JjM0Rb8tghxee7PT1ZAswz7VR0ZD";
-
         try
         {
-            Console.WriteLine("request: " + JsonSerializer.Serialize(request));
-            var requestBody = JsonSerializer.Deserialize<RootObject>(request.Body);
-            Console.WriteLine("requestBody: " + JsonSerializer.Serialize(requestBody));
+            Console.WriteLine("Webhook: " + JsonSerializer.Serialize(request));
 
-            if (requestBody != null && requestBody.@object != null && requestBody.entry[0].id != null)
+            if (request.httpMethod == "GET")
             {
-                if (requestBody.entry[0].changes[0].value.messages[0].id != null)
-                {
-                    var messageId = requestBody.entry[0].changes[0].value.messages[0].id;
-
-                    if (processedMessageIds.Contains(messageId))
-                    {
-                        return new APIGatewayProxyResponse
-                        {
-                            StatusCode = 200,
-                            Body = "Duplicate message received.",
-                            Headers = new Dictionary<string, string>
-                            {
-                                { "Content-Type", "application/json" }
-                            }
-                        };
-                    }
-
-                    // Adicionar o ID ao conjunto de processados
-                    processedMessageIds.Add(messageId);
-                    var result = string.Empty;
-                    var json = string.Empty;
-                    var url = "https://graph.facebook.com/v20.0/501924736326787/messages";
-
-                    if (requestBody.entry[0].changes[0].value.messages[0].type == "image")
-                    { 
-                        var id_img = requestBody.entry[0].changes[0].value.messages[0].image.id;
-                        var messageDataImg = new
-                        {
-                            messaging_product = "whatsapp",
-                            recipient_type = "individual",
-                            to = "+5511942302556",
-                            type = "image",
-                            image = new
-                            {
-                                id = requestBody.entry[0].changes[0].value.messages[0].image.id,
-                                caption = "caption"
-                            }
-                        };
-                        json = JsonSerializer.Serialize(messageDataImg);
-                    }
-                    else
-                    {
-                        string inputText = requestBody.entry[0].changes[0].value.messages[0].text.body;
-                        result = await this.InvokeModelAsync(inputText);
-
-                        Console.WriteLine("Resultado do modelo:");
-                        Console.WriteLine(result);
-
-                        var messageData = new
-                        {
-                            messaging_product = "whatsapp",
-                            to = "5511942302556",
-                            type = "text",
-                            text = new
-                            {
-                                body = result
-                            }
-                        };
-                        json = JsonSerializer.Serialize(messageData);
-                    }
-
-                    using (var client = new HttpClient())
-                    {
-                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                        var response = await client.PostAsync(url, content);
-                        response.EnsureSuccessStatusCode();
-
-                        // Criando uma resposta
-                        return new APIGatewayProxyResponse
-                        {
-                            StatusCode = 200,
-                            Body = "Message processed successfully.",
-                            Headers = new Dictionary<string, string>
-                        {
-                            { "Content-Type", "application/json" }
-                        }
-                        };
-                    }
-                }
-                else
-                {
-                    return new APIGatewayProxyResponse
-                    {
-                        StatusCode = 403,
-                        Body = "NOK2"
-                    };
-                }
+                return CadastrarWebhookMeta(request);
             }
             else
             {
-                return new APIGatewayProxyResponse
+                var requestBody = JsonSerializer.Deserialize<RootObject>(request.body);
+
+                if (requestBody != null && requestBody.@object != null && requestBody.entry[0].id != null
+                    && requestBody.entry[0].changes[0].value.messages[0].id != null)
                 {
-                    StatusCode = 403,
-                    Body = "NOK3"
-                };
+                    Console.WriteLine("request: " + request.httpMethod + " " + JsonSerializer.Serialize(request));
+                    Console.WriteLine("requestBody: " + JsonSerializer.Serialize(requestBody));
+
+                    if (requestBody.entry[0].changes[0].value.messages[0].type == "image")
+                    {
+                        json = TratarImagem(requestBody);
+                    }
+                    else if (requestBody.entry[0].changes[0].value.messages[0].type == "audio")
+                    {
+                        json = TratarAudio(requestBody);
+                    }
+                    else
+                    {
+                        await TratarTexto(request, requestBody);
+                    }
+
+                    return await CallbackMensagem();
+                }
+                else
+                {
+                    Console.WriteLine("NOK3 ");
+                    return new APIGatewayProxyResponse
+                    {
+                        StatusCode = 200,
+                        Body = "NOK3"
+                    };
+                }
             }
         }
         catch (Exception e)
         {
+            Console.WriteLine("NOK4 ");
             return new APIGatewayProxyResponse
             {
-                StatusCode = 500,
-                Body = "NOK4"
+                StatusCode = 200,
+                Body = "NOK4" + e.Message
             };
         }
+    }
+
+    private async Task TratarTexto(APIGatewayProxyRequestMeta request, RootObject? requestBody)
+    {
+        result = await ChamarBackend(request);
+        object messageData = NewCallbackMessage(requestBody);
+        json = JsonSerializer.Serialize(messageData);
+    }
+
+    private object NewCallbackMessage(RootObject? requestBody)
+    {
+        return new
+        {
+            messaging_product = "whatsapp",
+            to = requestBody.entry[0].changes[0].value.messages[0].@from.ToString(),
+            type = "text",
+            text = new
+            {
+                body = result.Replace("\"", "")
+            }
+        };
+    }
+
+    private async Task<APIGatewayProxyResponse> CallbackMensagem()
+    {
+        using (var client = new HttpClient())
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            Console.WriteLine("messageDataText: " + json);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(url, content);
+            response.EnsureSuccessStatusCode();
+
+            return new APIGatewayProxyResponse
+            {
+                StatusCode = 200,
+                Body = result,
+                Headers = new Dictionary<string, string>
+                {
+                    { "Content-Type", "application/json" }
+                }
+            };
+        }
+    }
+
+    private static async Task<string> ChamarBackend(APIGatewayProxyRequestMeta request)
+    {
+        HttpClient clienthttp = new HttpClient();
+
+        // Dados para a requisição POST
+        var postDataToken = new StringContent("{\"grant_type\":\"client_credentials\"}", System.Text.Encoding.UTF8, "application/json");
+
+        clienthttp.DefaultRequestHeaders.Add("Accept", "application/json");
+        clienthttp.DefaultRequestHeaders.Add("Authorization", "Basic ZDc3NzM1NWQtMWQ4MC00NzFhLTkyZWEtODExODVlMzgwYjhmOmQ4ZGRmZTU4LTU0MTktNDViZS1hMmY0LWY0YzU0N2E4ZDYxNw==");
+
+        // Requisição GET para obter o token JWT
+        HttpResponseMessage TokenResponse = await clienthttp.PostAsync("https://oauth-hml.bancobmg.com.br/oauth/v1/access-token", postDataToken);
+
+        TokenResponse.EnsureSuccessStatusCode();
+        string responseBody = await TokenResponse.Content.ReadAsStringAsync();
+
+        BearerToken response_des = JsonSerializer.Deserialize<BearerToken>(responseBody);
+        var tokenJWT = response_des.access_token;
+
+        // Adiciona o token JWT no cabeçalho da requisição POST
+        clienthttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJWT);
+
+        // Dados para a requisição POST
+        var postData = new StringContent(request.body, Encoding.UTF8, "application/json");
+
+        // Requisição POST usando o token JWT
+        HttpResponseMessage postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
+
+        postResponse.EnsureSuccessStatusCode();
+        var postResponseBody = await postResponse.Content.ReadAsStringAsync();
+        Console.WriteLine("postResponseBody: " + postResponseBody);
+        return postResponseBody;
+    }
+
+    private static APIGatewayProxyResponse CadastrarWebhookMeta(APIGatewayProxyRequestMeta request)
+    {
+        Console.WriteLine("queryStringParameters: " + JsonSerializer.Serialize(request.queryStringParameters));
+
+        // Acessando os parâmetros da query string
+        var queryStringParameters = request.queryStringParameters;
+
+        // Inicializando variáveis
+        string mode = queryStringParameters != null && queryStringParameters.ContainsKey("hub.mode")
+            ? queryStringParameters["hub.mode"]
+            : null;
+
+        string challenge = queryStringParameters != null && queryStringParameters.ContainsKey("hub.challenge")
+            ? queryStringParameters["hub.challenge"]
+            : null;
+
+        string verifyToken = queryStringParameters != null && queryStringParameters.ContainsKey("hub.verify_token")
+            ? queryStringParameters["hub.verify_token"]
+            : null;
+
+        // Verificando se o verify token é válido
+        if (verifyToken == "leandro")
+        {
+            return new APIGatewayProxyResponse
+            {
+                StatusCode = 200,
+                Body = challenge,
+                Headers = new Dictionary<string, string>
+                        {
+                            { "Content-Type", "text/plain" }
+                        }
+            };
+        }
+        else
+        {
+            return new APIGatewayProxyResponse
+            {
+                StatusCode = 403,
+                Body = "NOK no token"
+            };
+        }
+    }
+
+    private static string TratarImagem(RootObject? requestBody)
+    {
+        string json;
+        var id_img = requestBody.entry[0].changes[0].value.messages[0].image.id;
+        var messageDataImg = new
+        {
+            messaging_product = "whatsapp",
+            recipient_type = "individual",
+            to = requestBody.entry[0].changes[0].value.messages[0].@from.ToString(),
+            type = "image",
+            image = new
+            {
+                id = id_img,
+                caption = "Estamos desenvolvendo a extração"
+            }
+        };
+        json = JsonSerializer.Serialize(messageDataImg);
+
+        Console.WriteLine("messageDataImg: " + json);
+        return json;
+    }
+
+    private static string TratarAudio(RootObject? requestBody)
+    {
+        string json;
+        var id_audio = requestBody.entry[0].changes[0].value.messages[0].audio.id;
+        var messageDataImg = new
+        {
+            messaging_product = "whatsapp",
+            recipient_type = "individual",
+            to = requestBody.entry[0].changes[0].value.messages[0].@from.ToString(),
+            type = "audio",
+            audio = new
+            {
+                id = "2162501764264589"//id_audio
+            }
+        };
+        json = JsonSerializer.Serialize(messageDataImg);
+
+        Console.WriteLine("messageDataAudio: " + json);
+        return json;
     }
 
     public async Task<string> InvokeModelAsync(string userMessage)
@@ -197,97 +293,4 @@ public class Function
             throw;
         }
     }
-}
-
-
-
-public class APIGatewayProxyRequest
-{
-    public string HttpMethod { get; set; }                          // Método HTTP da solicitação (GET, POST, etc.)
-    public string Path { get; set; }                                 // Caminho do endpoint
-    public string Body { get; set; }                                 // Corpo da solicitação
-    public bool IsBase64Encoded { get; set; }                        // Indica se o corpo está codificado em Base64
-    public Dictionary<string, string> QueryStringParameters { get; set; } // Parâmetros de consulta
-    public Dictionary<string, string> Headers { get; set; }          // Cabeçalhos da solicitação
-    //public RequestContext RequestContext { get; set; }               // Informações contextuais da solicitação
-    public string Resource { get; set; }                              // O recurso associado ao endpoint
-}
-
-// Classe para desserialização do JSON
-public class RootObject
-{
-    public string @object { get; set; }
-    public List<Entry> entry { get; set; }
-}
-
-public class Entry
-{
-    public string id { get; set; }
-    public List<Change> changes { get; set; }
-}
-
-public class Change
-{
-    public Value value { get; set; }
-    public string field { get; set; }
-}
-
-public class Value
-{
-    public string messaging_product { get; set; }
-    public Metadata metadata { get; set; }
-    public List<Message> messages { get; set; }
-}
-
-public class Metadata
-{
-    public string display_phone_number { get; set; }
-    public string phone_number_id { get; set; }
-}
-
-public class Message
-{
-    public string id { get; set; }
-    public string from { get; set; }
-    public string to { get; set; }
-    public string timestamp { get; set; }
-    public Text text { get; set; }
-    public string type { get; set; }
-    public Image image { get; set; }
-
-    public Audio audio { get; set; }
-}
-
-public class Audio
-{
-    public string id { get; set; } 
-
-}
-
-public class Image
-{
-    public string id { get; set; }
-    public string caption { get; set; }
-    public string mime_type { get; set; }
-    public string sha256 { get; set; }
-
-}
-
-public class Text
-{
-    public string body { get; set; }
-}
-
-
-public class ResponseImg
-{
-    public string url { get; set; }
-
-    public string mime_type { get; set; }
-
-    public string messaging_product { get; set; }
-
-    public int file_size { get; set; }
-
-    public string sha256 { get; set; }
 }
