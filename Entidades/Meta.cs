@@ -58,9 +58,18 @@
         public string timestamp { get; set; }
         public Text text { get; set; }
         public string type { get; set; }
+        public Botao button { get; set; }
         public Image image { get; set; }
 
         public Audio audio { get; set; }
+    } 
+  
+    public class Botao
+    {
+        public string payload { get; set; }
+
+        public string text { get; set; }
+
     }
 
     public class Audio

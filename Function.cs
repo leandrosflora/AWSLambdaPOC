@@ -8,6 +8,7 @@ using Amazon.BedrockRuntime.Model;
 using System.Text.Json.Nodes;
 using Amazon;
 using AWSLambdaPOC.Entidades;
+using System.Text.RegularExpressions;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -18,9 +19,9 @@ public class Function
 {
     string result = string.Empty;
     string json = string.Empty;
-    const string url = "https://graph.facebook.com/v20.0/519842974541275/messages";
-    const string token = "EAARKw58BssABO7lShK8dZByUZBAMiZCEHw65KYVMVZCMzfZBmC9XMo0ror4jYeUD5VAFZBmC2lCvftp3oZA98JEYGfciZCe8lAJ1tO1Itg29lYyAoKQtn03T3IUEmgG04ZByNQtNJMcQ2MrZCEGaM3faxUa8ZBtfKLsrajAcl78VTOjEhu08e96rj34oASyl3Yk78TP";
-
+    const string urlMetaFacebookWhatsapp = "https://graph.facebook.com/v20.0/519842974541275/messages";
+    const string tokenMetaWhatsapp = "EAARKw58BssABO7lShK8dZByUZBAMiZCEHw65KYVMVZCMzfZBmC9XMo0ror4jYeUD5VAFZBmC2lCvftp3oZA98JEYGfciZCe8lAJ1tO1Itg29lYyAoKQtn03T3IUEmgG04ZByNQtNJMcQ2MrZCEGaM3faxUa8ZBtfKLsrajAcl78VTOjEhu08e96rj34oASyl3Yk78TP";
+    string whiteList = "5511942302556, 5511949047360, 5511948671189, 5511949836043, 5511996924700";
     public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequestMeta request, ILambdaContext context)
     {
         try
@@ -41,20 +42,36 @@ public class Function
                     Console.WriteLine("request: " + request.httpMethod + " " + JsonSerializer.Serialize(request));
                     Console.WriteLine("requestBody: " + JsonSerializer.Serialize(requestBody));
 
-                    if (requestBody.entry[0].changes[0].value.messages[0].type == "image")
+                    if (whiteList.Contains(requestBody.entry[0].changes[0].value.messages[0].@from.ToString()))
                     {
-                        json = TratarImagem(requestBody);
-                    }
-                    else if (requestBody.entry[0].changes[0].value.messages[0].type == "audio")
-                    {
-                        json = TratarAudio(requestBody);
+                        await RepassarBackEnd(request, requestBody);
+
+                        return new APIGatewayProxyResponse
+                        {
+                            StatusCode = 200,
+                            Body = result,
+                            Headers = new Dictionary<string, string>
+                            {
+                                { "Content-Type", "application/json" }
+                            }
+                        };
+
                     }
                     else
                     {
-                        await TratarTexto(request, requestBody);
+                        var messageNaoAutorizados = new
+                        {
+                            messaging_product = "whatsapp",
+                            to = requestBody.entry[0].changes[0].value.messages[0].@from.ToString(),
+                            type = "text",
+                            text = new
+                            {
+                                body = "Cliente não autorizado"
+                            }
+                        };
+                        json = JsonSerializer.Serialize(messageNaoAutorizados);
+                        return await CallbackMensagem();
                     }
-
-                    return await CallbackMensagem();
                 }
                 else
                 {
@@ -78,11 +95,209 @@ public class Function
         }
     }
 
-    private async Task TratarTexto(APIGatewayProxyRequestMeta request, RootObject? requestBody)
+    private async Task EnviarTemplateConfirmacaoFavorecido(string numeroDestinatario, string template, string nomeFavorecido, string Banco, string chavepix)
     {
-        result = await ChamarBackend(request);
-        object messageData = NewCallbackMessage(requestBody);
-        json = JsonSerializer.Serialize(messageData);
+        var messageTemplate = new
+        {
+            messaging_product = "whatsapp",
+            to = numeroDestinatario,
+            type = "template",
+            template = new
+            {
+                name = template,
+                language = new { code = "pt_BR" },
+                components = new[]
+                {
+                        new
+                        {
+                            type = "body",
+                            parameters = new[]
+                            {
+                                new { type = "text", text = nomeFavorecido},
+                                new { type = "text", text = Banco},
+                                new { type = "text", text = chavepix}
+                            }
+                        }
+                    }
+            }
+        };
+        json = JsonSerializer.Serialize(messageTemplate);
+        await CallbackMensagem();
+
+    }
+
+    private async Task EnviarTemplateRevisaoDadosPix(string numeroDestinatario, string template, string valorPix, string nomeFavorecido, string chavePix, string banco)
+    {
+        var messageTemplate = new
+        {
+            messaging_product = "whatsapp",
+            to = numeroDestinatario,
+            type = "template",
+            template = new
+            {
+                name = template,
+                language = new { code = "pt_BR" },
+                components = new[]
+                {
+                        new
+                        {
+                            type = "body",
+                            parameters = new[]
+                            {
+                                new { type = "text", text = valorPix},
+                                new { type = "text", text = nomeFavorecido},
+                                new { type = "text", text = chavePix},
+                                new { type = "text", text = banco},
+
+                            }
+                        }
+                    }
+            }
+        };
+        json = JsonSerializer.Serialize(messageTemplate);
+        await CallbackMensagem();
+
+    }
+    private async Task EnviarTemplate(string numeroDestinatario, string template)
+    {
+        var messageTemplate = new
+        {
+            messaging_product = "whatsapp",
+            to = numeroDestinatario,
+            type = "template",
+            template = new
+            {
+                name = template,
+                language = new { code = "pt_BR" }
+            }
+        };
+        json = JsonSerializer.Serialize(messageTemplate);
+        await CallbackMensagem();
+    }
+
+    private async Task<string> ExtractValueAsync(string input, string fieldName)
+    {
+        string pattern = $@"\*\*{fieldName}\*\*: (.+)";
+        Match match = Regex.Match(input, pattern);
+        return match.Success ? match.Groups[1].Value : string.Empty;
+    }
+
+    private async Task RepassarBackEnd(APIGatewayProxyRequestMeta request, RootObject? requestBody)
+    {
+        if (requestBody.entry[0].changes[0].value.messages[0].type == "audio"
+            || requestBody.entry[0].changes[0].value.messages[0].type == "image")
+        {
+            result = await ChamarBackend(request, true);
+            //result = "Certo! Vamos revisar as informações do PIX:\r\n\r\n**Chave PIX**: opix@bmg.com\r\n**Nome**: José Silva\r\n**Instituição**: Banco BMG\r\n**Valor**: R$ 55,00\r\n\r\nPor favor, confirme se todas as informações estão corretas digitando \"sim\" para prosseguir ou \"não\" para cancelar ou fazer alterações.";
+
+            string chavePix = await ExtractValueAsync(result, "Chave PIX");
+            string nomeFavorecido = await ExtractValueAsync(result, "Nome");
+            string instituicao = await ExtractValueAsync(result, "Instituição");
+            string valorPix = await ExtractValueAsync(result, "Valor");
+
+            if (!string.IsNullOrEmpty(valorPix))
+            {
+                var templateRevisao = "revisao";
+                await EnviarTemplateRevisaoDadosPix(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao, valorPix.TrimEnd(), nomeFavorecido.TrimEnd(), chavePix.TrimEnd(), instituicao.TrimEnd());
+            }
+            else
+            {
+                var templateConfiFav = "confirmacao_favorecido";
+                await EnviarTemplateConfirmacaoFavorecido(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav, chavePix.TrimEnd(), instituicao.TrimEnd(), chavePix.TrimEnd());
+            }
+        } 
+        else if (requestBody.entry[0].changes[0].value.messages[0].type == "button")
+        {
+            if (requestBody.entry[0].changes[0].value.messages[0].button.payload.Contains("corretas"))
+            {
+                var templatePerguntaValorPix = "pergunta_valor_pix";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templatePerguntaValorPix);
+            }
+            else if (requestBody.entry[0].changes[0].value.messages[0].button.payload.Contains("confirmo"))
+            {
+                var templatePixEnviado = "pix_enviado_sucesso";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templatePixEnviado);
+            }
+            else if (requestBody.entry[0].changes[0].value.messages[0].button.payload.Contains("Não"))
+            {
+                var templateRepita = "nao_entendi";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRepita);
+            }
+        }
+        else if (requestBody.entry[0].changes[0].value.messages[0].text.body.Contains(','))
+        {
+            var templateRevisao = "revisao";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao);
+        }
+        else if (requestBody.entry[0].changes[0].value.messages[0].type == "request_welcome")
+        {
+            var templateOla = "ola";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateOla);
+
+            var templateNovidade = "novidade";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateNovidade);
+
+            var templateTransacoes = "opcoes_transacao";
+            EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateTransacoes);
+        }
+        else if (requestBody.entry[0].changes[0].value.messages[0].text.body == "3")
+        {
+            var templatePerguntaQualFavorecido = "pergunta_qual_chave_pix";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templatePerguntaQualFavorecido);
+        }
+        else if (requestBody.entry[0].changes[0].value.messages[0].text.body == "pocpix@bmg.com")
+        {
+            var templateConfiFav = "confirmacao_favorecido";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav);
+        }
+        else if (requestBody.entry[0].changes[0].value.messages[0].text.body.Contains(','))
+        {
+            var templatePerguntaValorPix = "pergunta_valor_pix";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templatePerguntaValorPix);
+        }
+        else if (requestBody.entry[0].changes[0].value.messages[0].text.body == "1"
+                || requestBody.entry[0].changes[0].value.messages[0].text.body == "2"
+                || requestBody.entry[0].changes[0].value.messages[0].text.body == "4"
+                || requestBody.entry[0].changes[0].value.messages[0].text.body == "5"
+                || requestBody.entry[0].changes[0].value.messages[0].text.body == "6"
+                || requestBody.entry[0].changes[0].value.messages[0].text.body == "7"
+                || requestBody.entry[0].changes[0].value.messages[0].text.body == "8"
+                || requestBody.entry[0].changes[0].value.messages[0].text.body == "9")
+        {
+            var templateSomentePix = "somente_pix";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateSomentePix);
+        }
+        else
+        {
+            result = await ChamarBackend(request, false);
+
+            if (result.Contains("bem-vindo"))
+            {
+                var templateOla = "ola";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateOla);
+
+                var templateNovidade = "novidade";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateNovidade);
+
+                var templateTransacoes = "opcoes_transacao";
+                EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateTransacoes);
+            }
+            else if (result == "\"Invalid Bot Configuration: No usable messages given the current slot, sessionAttribute, and requestAttribute set.\"")
+            {
+                var templateOla = "ola";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateOla);
+            }
+            else if (result == "\"Sem resposta do bot\"")
+            {
+                var templateRepita = "nao_entendi";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRepita);
+            }
+            else
+            {
+                var templateRepita = "nao_entendi";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRepita);
+            }
+        }
     }
 
     private object NewCallbackMessage(RootObject? requestBody)
@@ -103,28 +318,35 @@ public class Function
     {
         using (var client = new HttpClient())
         {
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            Console.WriteLine("messageDataText: " + json);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await client.PostAsync(url, content);
-            response.EnsureSuccessStatusCode();
-
-            return new APIGatewayProxyResponse
+            try
             {
-                StatusCode = 200,
-                Body = result,
-                Headers = new Dictionary<string, string>
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenMetaWhatsapp);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                Console.WriteLine("messageDataText: " + json);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync(urlMetaFacebookWhatsapp, content);
+                response.EnsureSuccessStatusCode();
+
+                return new APIGatewayProxyResponse
+                {
+                    StatusCode = 200,
+                    Body = result,
+                    Headers = new Dictionary<string, string>
                 {
                     { "Content-Type", "application/json" }
                 }
-            };
+                };
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
         }
     }
 
-    private static async Task<string> ChamarBackend(APIGatewayProxyRequestMeta request)
+    private static async Task<string> ChamarBackend(APIGatewayProxyRequestMeta request, bool audio)
     {
         HttpClient clienthttp = new HttpClient();
 
@@ -149,8 +371,18 @@ public class Function
         // Dados para a requisição POST
         var postData = new StringContent(request.body, Encoding.UTF8, "application/json");
 
-        // Requisição POST usando o token JWT
-        HttpResponseMessage postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
+        HttpResponseMessage postResponse;
+
+        if (audio)
+        {
+            postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/audio?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
+        }
+        else
+        {
+            // Requisição POST usando o token JWT
+            postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
+
+        }
 
         postResponse.EnsureSuccessStatusCode();
         var postResponseBody = await postResponse.Content.ReadAsStringAsync();
