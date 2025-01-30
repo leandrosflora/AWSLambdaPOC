@@ -17,7 +17,10 @@
     <PackageReference Include="AWSSDK.BedrockRuntime" Version="3.7.406.3" />
     <PackageReference Include="AWSSDK.Lex" Version="3.7.400.61" />
     <PackageReference Include="AWSSDK.LexRuntimeV2" Version="3.7.400.61" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.412.4" />
     <PackageReference Include="AWSSDK.SageMakerRuntime" Version="3.7.401.23" />
     <PackageReference Include="AWSSDK.Textract" Version="3.7.400.64" />
+    <PackageReference Include="AWSSDK.TranscribeService" Version="3.7.401.6" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>

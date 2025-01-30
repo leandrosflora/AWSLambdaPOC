@@ -1,7 +1,7 @@
 {
     "httpMethod": "POST",
     "path": "/webhook",
-    "body": "{\"object\":\"whatsapp_business_account\",\"entry\":[{\"id\":\"484437448091372\",\"changes\":[{\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"551140046598\",\"phone_number_id\":\"519842974541275\"},\"contacts\":[{\"profile\":{\"name\":\"Leandro Flora\"},\"wa_id\":\"5511942302556\"}],\"messages\":[{\"from\":\"5511942302556\",\"id\":\"wamid.HBgNNTUxMTk0MjMwMjU1NhUCABIYFDNBN0RGQjQ0N0NCNUMwM0REOEExAA==\",\"timestamp\":\"1737379109\",\"type\":\"audio\",\"audio\":{\"mime_type\":\"audio\\/ogg; codecs=opus\",\"sha256\":\"6cv8U4FEG3+oMvf1saiqi5pBmICYqoE6X6ELHbDp6Ts=\",\"id\":\"1130927992160115\",\"voice\":true}}]},\"field\":\"messages\"}]}]}",
+    "body": "{\"object\":\"whatsapp_business_account\",\"entry\":[{\"id\":\"484437448091372\",\"changes\":[{\"value\":{\"messaging_product\":\"whatsapp\",\"metadata\":{\"display_phone_number\":\"551140046598\",\"phone_number_id\":\"519842974541275\"},\"contacts\":[{\"profile\":{\"name\":\"Leandro Flora\"},\"wa_id\":\"5511942302556\"}],\"messages\":[{\"from\":\"5511942302556\",\"id\":\"wamid.HBgNNTUxMTk0MjMwMjU1NhUCABIYFDNBN0RGQjQ0N0NCNUMwM0REOEExAA==\",\"timestamp\":\"1737379109\",\"type\":\"audio\",\"audio\":{\"mime_type\":\"audio\\/ogg; codecs=opus\",\"sha256\":\"6cv8U4FEG3+oMvf1saiqi5pBmICYqoE6X6ELHbDp6Ts=\",\"id\":\"1127457925555667\",\"voice\":true}}]},\"field\":\"messages\"}]}]}",
     "isBase64Encoded": false,
     "queryStringParameters": {
         "hub.challenge": "contabmg",

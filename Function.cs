@@ -2,13 +2,24 @@ using Amazon.Lambda.Core;
 using System.Net.Http.Headers;
 using System.Text;
 using Amazon.Lambda.APIGatewayEvents;
-using System.Text.Json;
 using Amazon.BedrockRuntime;
 using Amazon.BedrockRuntime.Model;
 using System.Text.Json.Nodes;
 using Amazon;
 using AWSLambdaPOC.Entidades;
 using System.Text.RegularExpressions;
+using Amazon.S3;
+using Amazon.S3.Model;
+using Amazon.Textract.Model;
+using Amazon.Textract;
+using Amazon.TranscribeService;
+using Amazon.TranscribeService.Model;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+using Amazon.Runtime;
+using Amazon.LexRuntimeV2;
+using System.Diagnostics;
+using static System.Net.Mime.MediaTypeNames;
 
 // Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
@@ -19,14 +30,49 @@ public class Function
 {
     string result = string.Empty;
     string json = string.Empty;
+    const string _bucketName = "whatsappai";
+    const string urlBuscaMedia = "https://graph.facebook.com/v20.0/";
     const string urlMetaFacebookWhatsapp = "https://graph.facebook.com/v20.0/519842974541275/messages";
     const string tokenMetaWhatsapp = "EAARKw58BssABO7lShK8dZByUZBAMiZCEHw65KYVMVZCMzfZBmC9XMo0ror4jYeUD5VAFZBmC2lCvftp3oZA98JEYGfciZCe8lAJ1tO1Itg29lYyAoKQtn03T3IUEmgG04ZByNQtNJMcQ2MrZCEGaM3faxUa8ZBtfKLsrajAcl78VTOjEhu08e96rj34oASyl3Yk78TP";
-    string whiteList = "5511942302556, 5511949047360, 5511948671189, 5511949836043, 5511996924700";
+    string whiteList = "5511942302556, 5511949047360, 5511948671189, 5511949836043, 5511996924700, 5511976399130, 11959172222";
+    AmazonTranscribeServiceClient? _transcribeClient;
+    AmazonS3Client? _s3Client;
+    AmazonTextractClient? _textractClient;
+    AmazonBedrockRuntimeClient? _bedrockClient;
+    AmazonLexRuntimeV2Client? lexClient;
+
     public async Task<APIGatewayProxyResponse> FunctionHandler(APIGatewayProxyRequestMeta request, ILambdaContext context)
     {
         try
         {
-            Console.WriteLine("Webhook: " + JsonSerializer.Serialize(request));
+            bool local = false;
+
+            if (local)
+            {
+                // Ambiente de desenvolvimento local
+                var regiond = RegionEndpoint.USEast1;
+                var iddachave = "ASIARHPNTV4KCNK6XOUT";
+                var secretAcces = "3XBN9kKyneeYWDi7BXAy3LaiZ5CYhw2Cnx4G+S2h";
+                var tokenacesso = "IQoJb3JpZ2luX2VjEJ3//////////wEaCXVzLWVhc3QtMSJHMEUCICXoAtcvIqjzGoay1qMEOJ2CpSLPGFiDluThXo89R6AiAiEA5i6BMgJ4mfz07KGxKfWt1VETh6Xjd/wJ6ewAcaBwNtcqoQMIpv//////////ARABGgwwODQ3ODcwNDgyMTIiDAkHxzfvP4LC4tVMLSr1AtsnXqQTDtKqTLxbtAs6GAwu91zs50hJQYck99fGGyUqme0j2s7w1rNoeP6EwepovAWW63sLP+7RxmNwJ97XB3vhGXwXIVZkA6FEf6hQYLqsPFCUxCllMV0OD41RvP4Bayz3Zvyt/q4nEma9z6RtxRzzN1RwYYqkgn3Fr5bTpO4UUDhNJ+NvqFUL+WCNdSyguuaNk0FTwcGvyxy/NeI0X/c2f/RXT6T62PI8rTxCpBmQG4PODckY+DGGdFsl4QjiB+0I9pyjo7kJy6ITlCVUn6re3OPZueTgaVijkH8U0cmI/Do26UZjJkdrI9e/jIAY9IUuMqU0JaA46+3qXNT35nbAuh1JbBSfJKu5HQPTAmiZl+8lMZpxgF3zkmrKAUEaU2ppRAeBk/pBDZyoisqxJMc8jukcch13CnhFApeQK2nr5vcV4GLcK6nHtWeTC9WX5AFiZczyJ4m+4btDUOyOFLEznLVad1Z7yG3pLGzJK59Qb7e7guowj+/tvAY6pgHjSjvZNIMqNrT7OOHIEAAhdy6gzBAOBvso7r5IJu92Iz98OczkJLwplMe1ODwNmyb2jRTEnUZYs4tSGvyIFXEqN58ZIziJqNKwjrhGzBg9R0Lg/MUaqzZnBs12MBjsTOJbGQxyB0Uf/3cRBtjRZcxcZHFACFNRCvfj9ZzMmEMxEc4f/s5qRBWVZFcyZINAnOLdih5vxesq6nhT/r0dDwuCR5kR6fPt";
+                lexClient = new AmazonLexRuntimeV2Client(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
+                _transcribeClient = new AmazonTranscribeServiceClient(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
+                _s3Client = new AmazonS3Client(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
+                _textractClient = new AmazonTextractClient(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
+                _bedrockClient = new AmazonBedrockRuntimeClient(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
+            }
+            else
+            {
+                // Ambiente de produção na AWS 
+                var credentials = new EnvironmentVariablesAWSCredentials();
+                var awsCredentials = credentials.GetCredentials();
+                lexClient = new AmazonLexRuntimeV2Client(awsAccessKeyId: awsCredentials.AccessKey, awsSecretAccessKey: awsCredentials.SecretKey, region: RegionEndpoint.USEast1, awsSessionToken: awsCredentials.Token);
+                _transcribeClient = new AmazonTranscribeServiceClient(awsAccessKeyId: awsCredentials.AccessKey, awsSecretAccessKey: awsCredentials.SecretKey, region: RegionEndpoint.USEast1, awsSessionToken: awsCredentials.Token);
+                _s3Client = new AmazonS3Client(awsAccessKeyId: awsCredentials.AccessKey, awsSecretAccessKey: awsCredentials.SecretKey, region: RegionEndpoint.USEast1, awsSessionToken: awsCredentials.Token);
+                _textractClient = new AmazonTextractClient(awsAccessKeyId: awsCredentials.AccessKey, awsSecretAccessKey: awsCredentials.SecretKey, region: RegionEndpoint.USEast1, awsSessionToken: awsCredentials.Token);
+                _bedrockClient = new AmazonBedrockRuntimeClient(awsAccessKeyId: awsCredentials.AccessKey, awsSecretAccessKey: awsCredentials.SecretKey, region: RegionEndpoint.USEast1, awsSessionToken: awsCredentials.Token);
+            }
+
+            Console.WriteLine("Webhook: " + System.Text.Json.JsonSerializer.Serialize(request));
 
             if (request.httpMethod == "GET")
             {
@@ -34,13 +80,13 @@ public class Function
             }
             else
             {
-                var requestBody = JsonSerializer.Deserialize<RootObject>(request.body);
+                var requestBody = System.Text.Json.JsonSerializer.Deserialize<RootObject>(request.body);
 
                 if (requestBody != null && requestBody.@object != null && requestBody.entry[0].id != null
                     && requestBody.entry[0].changes[0].value.messages[0].id != null)
                 {
-                    Console.WriteLine("request: " + request.httpMethod + " " + JsonSerializer.Serialize(request));
-                    Console.WriteLine("requestBody: " + JsonSerializer.Serialize(requestBody));
+                    Console.WriteLine("request: " + request.httpMethod + " " + System.Text.Json.JsonSerializer.Serialize(request));
+                    Console.WriteLine("requestBody: " + System.Text.Json.JsonSerializer.Serialize(requestBody));
 
                     if (whiteList.Contains(requestBody.entry[0].changes[0].value.messages[0].@from.ToString()))
                     {
@@ -69,7 +115,7 @@ public class Function
                                 body = "Cliente não autorizado"
                             }
                         };
-                        json = JsonSerializer.Serialize(messageNaoAutorizados);
+                        json = System.Text.Json.JsonSerializer.Serialize(messageNaoAutorizados);
                         return await CallbackMensagem();
                     }
                 }
@@ -86,7 +132,7 @@ public class Function
         }
         catch (Exception e)
         {
-            Console.WriteLine("NOK4 ");
+            Console.WriteLine("NOK4: " + e.Message);
             return new APIGatewayProxyResponse
             {
                 StatusCode = 200,
@@ -113,15 +159,15 @@ public class Function
                             type = "body",
                             parameters = new[]
                             {
-                                new { type = "text", text = nomeFavorecido},
-                                new { type = "text", text = Banco},
+                                new { type = "text", text = "POC Pix BMG"},
+                                new { type = "text", text = "Banco BMG S.A"},
                                 new { type = "text", text = chavepix}
                             }
                         }
                     }
             }
         };
-        json = JsonSerializer.Serialize(messageTemplate);
+        json = System.Text.Json.JsonSerializer.Serialize(messageTemplate);
         await CallbackMensagem();
 
     }
@@ -145,19 +191,20 @@ public class Function
                             parameters = new[]
                             {
                                 new { type = "text", text = valorPix},
-                                new { type = "text", text = nomeFavorecido},
+                                new { type = "text", text = "POC Pix BMG"},
                                 new { type = "text", text = chavePix},
-                                new { type = "text", text = banco},
+                                new { type = "text", text = "Banco BMG S.A"},
 
                             }
                         }
                     }
             }
         };
-        json = JsonSerializer.Serialize(messageTemplate);
+        json = System.Text.Json.JsonSerializer.Serialize(messageTemplate);
         await CallbackMensagem();
 
     }
+
     private async Task EnviarTemplate(string numeroDestinatario, string template)
     {
         var messageTemplate = new
@@ -171,11 +218,11 @@ public class Function
                 language = new { code = "pt_BR" }
             }
         };
-        json = JsonSerializer.Serialize(messageTemplate);
+        json = System.Text.Json.JsonSerializer.Serialize(messageTemplate);
         await CallbackMensagem();
     }
 
-    private async Task<string> ExtractValueAsync(string input, string fieldName)
+    private string ExtractValue(string input, string fieldName)
     {
         string pattern = $@"\*\*{fieldName}\*\*: (.+)";
         Match match = Regex.Match(input, pattern);
@@ -187,25 +234,53 @@ public class Function
         if (requestBody.entry[0].changes[0].value.messages[0].type == "audio"
             || requestBody.entry[0].changes[0].value.messages[0].type == "image")
         {
-            result = await ChamarBackend(request, true);
-            //result = "Certo! Vamos revisar as informações do PIX:\r\n\r\n**Chave PIX**: opix@bmg.com\r\n**Nome**: José Silva\r\n**Instituição**: Banco BMG\r\n**Valor**: R$ 55,00\r\n\r\nPor favor, confirme se todas as informações estão corretas digitando \"sim\" para prosseguir ou \"não\" para cancelar ou fazer alterações.";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), "processando");
+            var transcricao = await this.GetMessageContentAsync(requestBody.entry[0].changes[0].value.messages[0]);
 
-            string chavePix = await ExtractValueAsync(result, "Chave PIX");
-            string nomeFavorecido = await ExtractValueAsync(result, "Nome");
-            string instituicao = await ExtractValueAsync(result, "Instituição");
-            string valorPix = await ExtractValueAsync(result, "Valor");
+            //var transcricao = "gostaria de fazer um pix para a chave o pix arroba b m g ponto com no valor de cinquenta e cinco reais";
+            var complemento = "devolver a chave pix na da frase seguinte como um tag **Chave PIX**: ";
+            Console.WriteLine("transcrição: " + transcricao); 
+            var responseApi = await ChamarBackend(request, true, false, complemento + transcricao);
+            Console.WriteLine("responseApi: " + responseApi);
+            //var responseApi = "As informações sobre PIX na frase são:\n\n**Chave PIX**: opix@bmg.com\n**Valor**: R$ 55,00 (cinquenta e cinco reais)";             
+            //var responseApi = "Certo! Vamos revisar as informações do PIX:\n\n**Chave PIX**: opix@bmg.com\n**Nome**: José Silva\n**Instituição**: Banco BMG\n**Valor**: R$ 55,00\n\nPor favor, confirme se todas as informações estão corretas digitando \"sim\" para prosseguir ou \"não\" para cancelar ou fazer alterações.";
+            responseApi = responseApi.Replace("\n\n", " ").Replace("\n", " ").Trim().Replace("As informações sobre PIX na frase são:", " ").Replace("Certo! Vamos revisar as informações do PIX:", " ").Trim();
+            
 
-            if (!string.IsNullOrEmpty(valorPix))
+            string chavePix = string.Empty;
+            string valorPix = string.Empty;  
+            chavePix = await ExtrairValor(responseApi, @"\*\*Chave PIX\*\*: ([^\s]+)");
+            chavePix = await this.RemoverCaracteresEspeciaisEspacos(chavePix);
+            valorPix = await ExtrairValor(responseApi, @"\*\*Valor\*\*: R\$ ([\d,]+)");
+            
+
+            //chavePix = await ExtractValueAsync(responseApi, "Chave PIX");
+            //string nomeFavorecido = await ExtractValueAsync(responseApi, "Nome");
+            //string instituicao = await ExtractValueAsync(responseApi, "Instituição");
+            //valorPix = await ExtractValueAsync(responseApi, "Valor");
+            string numberWhats = requestBody.entry[0].changes[0].value.messages[0].@from.ToString();
+
+            if (!string.IsNullOrEmpty(chavePix))
             {
-                var templateRevisao = "revisao";
-                await EnviarTemplateRevisaoDadosPix(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao, valorPix.TrimEnd(), nomeFavorecido.TrimEnd(), chavePix.TrimEnd(), instituicao.TrimEnd());
+                //TODO: Buscar favorecidos do cliente na api do pix e verificar se a chave mencionada está nesses favorecidos
+
+                if (!string.IsNullOrEmpty(valorPix) && !valorPix.Contains("frase"))
+                {
+                    var templateRevisao = "revisao";
+                    await EnviarTemplateRevisaoDadosPix(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao, valorPix.TrimEnd(), "", chavePix.TrimEnd(), "");
+                }
+                else
+                {
+                    var templateConfiFav = "confirmacao_favorecido";
+                    await EnviarTemplateConfirmacaoFavorecido(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav, chavePix.TrimEnd(), "", chavePix.TrimEnd());
+                }
             }
             else
             {
-                var templateConfiFav = "confirmacao_favorecido";
-                await EnviarTemplateConfirmacaoFavorecido(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav, chavePix.TrimEnd(), instituicao.TrimEnd(), chavePix.TrimEnd());
+                var templateRepita = "nao_entendi";
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRepita);
             }
-        } 
+        }
         else if (requestBody.entry[0].changes[0].value.messages[0].type == "button")
         {
             if (requestBody.entry[0].changes[0].value.messages[0].button.payload.Contains("corretas"))
@@ -227,7 +302,7 @@ public class Function
         else if (requestBody.entry[0].changes[0].value.messages[0].text.body.Contains(','))
         {
             var templateRevisao = "revisao";
-            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao);
+            await EnviarTemplateRevisaoDadosPix(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao, requestBody.entry[0].changes[0].value.messages[0].text.body, "", "pocpix@bmg.com", "");
         }
         else if (requestBody.entry[0].changes[0].value.messages[0].type == "request_welcome")
         {
@@ -248,12 +323,18 @@ public class Function
         else if (requestBody.entry[0].changes[0].value.messages[0].text.body == "pocpix@bmg.com")
         {
             var templateConfiFav = "confirmacao_favorecido";
-            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav);
-        }
-        else if (requestBody.entry[0].changes[0].value.messages[0].text.body.Contains(','))
+            await EnviarTemplateConfirmacaoFavorecido(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav, "", "", "pocpix@bmg.com");
+        } 
+        else if(requestBody.entry[0].changes[0].value.messages[0].text.body.ToLower() == "oi")
         {
-            var templatePerguntaValorPix = "pergunta_valor_pix";
-            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templatePerguntaValorPix);
+            var templateOla = "ola";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateOla);
+
+            var templateNovidade = "novidade";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateNovidade);
+
+            var templateTransacoes = "opcoes_transacao";
+            await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateTransacoes);
         }
         else if (requestBody.entry[0].changes[0].value.messages[0].text.body == "1"
                 || requestBody.entry[0].changes[0].value.messages[0].text.body == "2"
@@ -269,7 +350,7 @@ public class Function
         }
         else
         {
-            result = await ChamarBackend(request, false);
+            result = await ChamarBackend(request, false, false, "");
 
             if (result.Contains("bem-vindo"))
             {
@@ -280,7 +361,7 @@ public class Function
                 await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateNovidade);
 
                 var templateTransacoes = "opcoes_transacao";
-                EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateTransacoes);
+                await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateTransacoes);
             }
             else if (result == "\"Invalid Bot Configuration: No usable messages given the current slot, sessionAttribute, and requestAttribute set.\"")
             {
@@ -298,6 +379,30 @@ public class Function
                 await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRepita);
             }
         }
+    }
+
+    public async Task<string> RemoverCaracteresEspeciaisEspacos(string input)
+    {
+        // Remove caracteres especiais usando Regex
+        string semCaracteresEspeciais = Regex.Replace(input, @"[^a-zA-Z0-9@]", "");
+
+        // Remove espaços em branco
+        string semEspacos = semCaracteresEspeciais.Replace(" ", "");
+
+        if (Regex.IsMatch(semEspacos, @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"))
+        {
+            return semEspacos;
+        }
+        else
+        {
+            return Regex.Replace(semEspacos, @"[^\d]", "");
+        } 
+    }
+
+    public async Task<string>  ExtrairValor(string frase, string padrao)
+    {
+        Match match = Regex.Match(frase, padrao);
+        return match.Success ? match.Groups[1].Value : string.Empty;
     }
 
     private object NewCallbackMessage(RootObject? requestBody)
@@ -346,7 +451,7 @@ public class Function
         }
     }
 
-    private static async Task<string> ChamarBackend(APIGatewayProxyRequestMeta request, bool audio)
+    private static async Task<string> ChamarBackend(APIGatewayProxyRequestMeta request, bool audio, bool image, string msg)
     {
         HttpClient clienthttp = new HttpClient();
 
@@ -362,7 +467,7 @@ public class Function
         TokenResponse.EnsureSuccessStatusCode();
         string responseBody = await TokenResponse.Content.ReadAsStringAsync();
 
-        BearerToken response_des = JsonSerializer.Deserialize<BearerToken>(responseBody);
+        BearerToken response_des = System.Text.Json.JsonSerializer.Deserialize<BearerToken>(responseBody);
         var tokenJWT = response_des.access_token;
 
         // Adiciona o token JWT no cabeçalho da requisição POST
@@ -373,26 +478,33 @@ public class Function
 
         HttpResponseMessage postResponse;
 
-        if (audio)
+        if (audio && !string.IsNullOrEmpty(msg))
         {
-            postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/audio?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
+            var postbedrock = new StringContent(msg, Encoding.UTF8, "application/json");
+            var res = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp/contexto?message=" + msg, postbedrock);
+            res.EnsureSuccessStatusCode();
+            var postResponseBody = await res.Content.ReadAsStringAsync();
+            return postResponseBody;
+        }
+        else if (image)
+        {
+            clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp/image", postData);
+            return "";
         }
         else
         {
             // Requisição POST usando o token JWT
             postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
-
+            postResponse.EnsureSuccessStatusCode();
+            var postResponseBody = await postResponse.Content.ReadAsStringAsync();
+            Console.WriteLine("postResponseBody: " + postResponseBody);
+            return postResponseBody;
         }
-
-        postResponse.EnsureSuccessStatusCode();
-        var postResponseBody = await postResponse.Content.ReadAsStringAsync();
-        Console.WriteLine("postResponseBody: " + postResponseBody);
-        return postResponseBody;
     }
 
     private static APIGatewayProxyResponse CadastrarWebhookMeta(APIGatewayProxyRequestMeta request)
     {
-        Console.WriteLine("queryStringParameters: " + JsonSerializer.Serialize(request.queryStringParameters));
+        Console.WriteLine("queryStringParameters: " + System.Text.Json.JsonSerializer.Serialize(request.queryStringParameters));
 
         // Acessando os parâmetros da query string
         var queryStringParameters = request.queryStringParameters;
@@ -449,7 +561,7 @@ public class Function
                 caption = "Estamos desenvolvendo a extração"
             }
         };
-        json = JsonSerializer.Serialize(messageDataImg);
+        json = System.Text.Json.JsonSerializer.Serialize(messageDataImg);
 
         Console.WriteLine("messageDataImg: " + json);
         return json;
@@ -470,7 +582,7 @@ public class Function
                 id = "2162501764264589"//id_audio
             }
         };
-        json = JsonSerializer.Serialize(messageDataImg);
+        json = System.Text.Json.JsonSerializer.Serialize(messageDataImg);
 
         Console.WriteLine("messageDataAudio: " + json);
         return json;
@@ -478,8 +590,7 @@ public class Function
 
     public async Task<string> InvokeModelAsync(string userMessage)
     {
-        // Create a Bedrock Runtime client in the AWS Region you want to use.
-        var client = new AmazonBedrockRuntimeClient(RegionEndpoint.USEast1);
+        //var _bedrockClient = new AmazonBedrockRuntimeClient(RegionEndpoint.USEast1);
 
         // Set the model ID, e.g., Titan Text Premier.
         var modelId = "amazon.titan-text-premier-v1:0";
@@ -488,7 +599,7 @@ public class Function
         //var userMessage = "Describe the purpose of a 'hello world' program in one line.";
 
         //Format the request payload using the model's native structure.
-        var nativeRequest = JsonSerializer.Serialize(new
+        var nativeRequest = System.Text.Json.JsonSerializer.Serialize(new
         {
             inputText = userMessage + " e me responda sempre em portugues",
             textGenerationConfig = new
@@ -509,7 +620,7 @@ public class Function
         try
         {
             // Send the request to the Bedrock Runtime and wait for the response.
-            var response = await client.InvokeModelAsync(request);
+            var response = await _bedrockClient.InvokeModelAsync(request);
 
             // Decode the response body.
             var modelResponse = await JsonNode.ParseAsync(response.Body);
@@ -524,5 +635,255 @@ public class Function
             Console.WriteLine($"ERROR: Can't invoke '{modelId}'. Reason: {e.Message}");
             throw;
         }
+    }
+
+    public async Task DownloadMideaAndUploadIntoS3Async(string fileName, string extension)
+    {
+        try
+        {
+            var fileUrl = await GetUrlToDownloadFileAsync(fileName);
+            var mediaStream = await DownloadFileStreamAsync(fileUrl);
+            if (mediaStream != null)
+                await this.UploadFileAsync(mediaStream, $"{fileName}{extension}");
+        }
+        catch (Exception e)
+        {
+            System.Console.WriteLine($"Error: {e.Message}");
+        }
+    }
+
+    public async Task UploadFileAsync(Stream mediaStream, string fileName)
+    {
+        //var _s3Client = new AmazonS3Client(RegionEndpoint.USEast1);
+
+        var putRequest = new PutObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = fileName,
+            InputStream = mediaStream
+        };
+
+        try
+        {
+            PutObjectResponse response = await _s3Client.PutObjectAsync(putRequest);
+            Console.WriteLine("Upload concluído com sucesso!");
+        }
+        catch (AmazonS3Exception e)
+        {
+            System.Console.WriteLine(e.Message);
+        }
+        catch (Exception e)
+        {
+            System.Console.WriteLine(e.Message);
+        }
+    }
+
+    private async Task<Stream?> DownloadFileStreamAsync(string fileUrl)
+    {
+        try
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenMetaWhatsapp);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Add("User-Agent", "watsappai/0.1");
+                var result = await client.GetAsync(fileUrl);
+                result.EnsureSuccessStatusCode();
+                return await result.Content.ReadAsStreamAsync();
+
+            }
+        }
+        catch (Exception e)
+        {
+            System.Console.WriteLine($"Error: {e.Message}");
+            return null;
+        }
+    }
+
+    private async Task<string> GetUrlToDownloadFileAsync(string id)
+    {
+        try
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenMetaWhatsapp);
+                var result = await client.GetAsync(urlBuscaMedia + id);
+                result.EnsureSuccessStatusCode();
+                string responseBody = await result.Content.ReadAsStringAsync();
+                var convertClass = JsonConvert.DeserializeObject<FileWhatsapp>(responseBody);
+                return convertClass?.url ?? "";
+            }
+        }
+        catch (Exception e)
+        {
+            System.Console.WriteLine($"Error: {e.Message}");
+            return "";
+        }
+    }
+
+    private async Task<string> ExtractValueAsync(string input, string fieldName)
+    {
+        string pattern = $@"\*\*{fieldName}\*\*: (.+)";
+        Match match = Regex.Match(input, pattern);
+        return match.Success ? match.Groups[1].Value : string.Empty;
+    }
+
+    public async Task<string> GetMessageContentAsync(Entidades.Message messageObject)
+    {
+        switch (messageObject?.type)
+        {
+            case "text":
+                return await Task.FromResult(messageObject.text.body);
+            case "image":
+                string imageExtension = ".jpeg";
+                string imageName = $"{messageObject.image.id}{imageExtension}";
+                await this.DownloadMideaAndUploadIntoS3Async(messageObject.image.id, imageExtension);
+                return await this.ExtractImageAsync(imageName);
+            case "audio":
+                string audioExtension = ".ogg";
+                string audioName = $"{messageObject.audio.id}{audioExtension}";
+                await this.DownloadMideaAndUploadIntoS3Async(messageObject.audio.id, audioExtension);
+                return await this.TranscribeAudioAsync(audioName);
+            default:
+                return await Task.FromResult("");
+        }
+    }
+
+    public async Task<string> ExtractImageAsync(string keyName)
+    {
+        try
+        {
+            //var _textractClient = new AmazonTextractClient(RegionEndpoint.USEast1);
+
+            var request = new AnalyzeDocumentRequest
+            {
+                Document = new Document
+                {
+                    S3Object = new Amazon.Textract.Model.S3Object
+                    {
+                        Bucket = _bucketName,
+                        Name = keyName
+                    }
+                },
+                FeatureTypes = new List<string> { "LAYOUT" }
+            };
+
+            var response = await _textractClient.AnalyzeDocumentAsync(request);
+
+            string result = string.Empty;
+
+            foreach (var block in response.Blocks)
+            {
+                Console.WriteLine($"Block Type: {block.BlockType}");
+                if (block.BlockType == BlockType.LINE)
+                {
+                    Console.WriteLine($"Key: {block.Text}");
+                    result += block.Text + " ";
+                }
+            }
+
+            System.Console.WriteLine($"=====>>>>> {result}");
+            return result;
+        }
+        catch (Exception e)
+        {
+            return e.Message;
+        }
+
+    }
+
+    public async Task<string> TranscribeAudioAsync(string keyName)
+    {
+
+        try
+        {
+            //var _transcribeClient = new AmazonTranscribeServiceClient(RegionEndpoint.USEast1);
+
+            string transcriptionJobName = $"transcribe-{Guid.NewGuid()}";
+
+            var transcribeRequest = new StartTranscriptionJobRequest
+            {
+                TranscriptionJobName = transcriptionJobName,
+                LanguageCode = "pt-BR",
+                MediaFormat = "ogg",
+                Media = new Media
+                {
+                    MediaFileUri = $"https://{_bucketName}.s3.us-east-2.amazonaws.com/{keyName}"
+                },
+                OutputBucketName = _bucketName
+            };
+            var transcribeResponse = await _transcribeClient.StartTranscriptionJobAsync(transcribeRequest);
+            var transcription = await GetTranscriptionResultAsync(transcriptionJobName);
+            return transcription;
+        }
+        catch (Exception ex)
+        {
+            System.Console.WriteLine(new Exception(ex.ToString()));
+            return ex.Message;
+        }
+    }
+
+    private async Task<GetTranscriptionJobResponse> GetTranscriptionJobStatusAsync(string transcriptionJobName)
+    {
+        //var _transcribeClient = new AmazonTranscribeServiceClient(awsAccessKeyId: awsCredentials.AccessKey, awsSecretAccessKey: awsCredentials.SecretKey, awsSessionToken: awsCredentials.Token, region: RegionEndpoint.USEast1);
+
+        var describeTranscriptionJobRequest = new GetTranscriptionJobRequest
+        {
+            TranscriptionJobName = transcriptionJobName
+        };
+        return await _transcribeClient.GetTranscriptionJobAsync(describeTranscriptionJobRequest);
+    }
+
+    // Função para recuperar a transcrição quando o trabalho for concluído
+    private async Task<string> GetTranscriptionResultAsync(string transcriptionJobName)
+    {
+        var status = new GetTranscriptionJobResponse();
+        do
+        {
+            status = await GetTranscriptionJobStatusAsync(transcriptionJobName);
+            if (status.TranscriptionJob.TranscriptionJobStatus == "COMPLETED")
+            {
+                try
+                {
+                    using (var response = await this.GetFileAsync($"{transcriptionJobName}.json"))
+                    using (var inputStream = response.ResponseStream)
+                    using (var reader = new StreamReader(inputStream))
+                    {
+                        string jsonString = await reader.ReadToEndAsync();
+                        JObject jsonObject = JObject.Parse(jsonString);
+                        string transcript = (string)jsonObject["results"]["transcripts"][0]["transcript"];
+                        return transcript;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine(ex.Message);
+                }
+            }
+            else if (status.TranscriptionJob.TranscriptionJobStatus == "FAILED")
+            {
+                throw new Exception("Transcription job failed.");
+            }
+            else
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10));
+            }
+        }
+        while (status.TranscriptionJob.TranscriptionJobStatus == "IN_PROGRESS" || status.TranscriptionJob.TranscriptionJobStatus == "QUEUED");
+        return null;
+    }
+
+    public async Task<GetObjectResponse> GetFileAsync(string fileName)
+    {
+        //var _s3Client = new AmazonS3Client(RegionEndpoint.USEast1);
+
+        var request = new GetObjectRequest
+        {
+            BucketName = _bucketName,
+            Key = fileName
+        };
+
+        return await _s3Client.GetObjectAsync(request);
+
     }
 }
