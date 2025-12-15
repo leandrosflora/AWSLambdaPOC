@@ -51,9 +51,9 @@ public class Function
             {
                 // Ambiente de desenvolvimento local
                 var regiond = RegionEndpoint.USEast1;
-                var iddachave = "ASIARHPNTV4KCNK6XOUT";
-                var secretAcces = "3XBN9kKyneeYWDi7BXAy3LaiZ5CYhw2Cnx4G+S2h";
-                var tokenacesso = "IQoJb3JpZ2luX2VjEJ3//////////wEaCXVzLWVhc3QtMSJHMEUCICXoAtcvIqjzGoay1qMEOJ2CpSLPGFiDluThXo89R6AiAiEA5i6BMgJ4mfz07KGxKfWt1VETh6Xjd/wJ6ewAcaBwNtcqoQMIpv//////////ARABGgwwODQ3ODcwNDgyMTIiDAkHxzfvP4LC4tVMLSr1AtsnXqQTDtKqTLxbtAs6GAwu91zs50hJQYck99fGGyUqme0j2s7w1rNoeP6EwepovAWW63sLP+7RxmNwJ97XB3vhGXwXIVZkA6FEf6hQYLqsPFCUxCllMV0OD41RvP4Bayz3Zvyt/q4nEma9z6RtxRzzN1RwYYqkgn3Fr5bTpO4UUDhNJ+NvqFUL+WCNdSyguuaNk0FTwcGvyxy/NeI0X/c2f/RXT6T62PI8rTxCpBmQG4PODckY+DGGdFsl4QjiB+0I9pyjo7kJy6ITlCVUn6re3OPZueTgaVijkH8U0cmI/Do26UZjJkdrI9e/jIAY9IUuMqU0JaA46+3qXNT35nbAuh1JbBSfJKu5HQPTAmiZl+8lMZpxgF3zkmrKAUEaU2ppRAeBk/pBDZyoisqxJMc8jukcch13CnhFApeQK2nr5vcV4GLcK6nHtWeTC9WX5AFiZczyJ4m+4btDUOyOFLEznLVad1Z7yG3pLGzJK59Qb7e7guowj+/tvAY6pgHjSjvZNIMqNrT7OOHIEAAhdy6gzBAOBvso7r5IJu92Iz98OczkJLwplMe1ODwNmyb2jRTEnUZYs4tSGvyIFXEqN58ZIziJqNKwjrhGzBg9R0Lg/MUaqzZnBs12MBjsTOJbGQxyB0Uf/3cRBtjRZcxcZHFACFNRCvfj9ZzMmEMxEc4f/s5qRBWVZFcyZINAnOLdih5vxesq6nhT/r0dDwuCR5kR6fPt";
+                var iddachave = "";
+                var secretAcces = "";
+                var tokenacesso = "";
                 lexClient = new AmazonLexRuntimeV2Client(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
                 _transcribeClient = new AmazonTranscribeServiceClient(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
                 _s3Client = new AmazonS3Client(awsAccessKeyId: iddachave, awsSecretAccessKey: secretAcces, region: regiond, awsSessionToken: tokenacesso);
@@ -62,7 +62,7 @@ public class Function
             }
             else
             {
-                // Ambiente de produÁ„o na AWS 
+                // Ambiente de produ√ß√£o na AWS 
                 var credentials = new EnvironmentVariablesAWSCredentials();
                 var awsCredentials = credentials.GetCredentials();
                 lexClient = new AmazonLexRuntimeV2Client(awsAccessKeyId: awsCredentials.AccessKey, awsSecretAccessKey: awsCredentials.SecretKey, region: RegionEndpoint.USEast1, awsSessionToken: awsCredentials.Token);
@@ -112,7 +112,7 @@ public class Function
                             type = "text",
                             text = new
                             {
-                                body = "Cliente n„o autorizado"
+                                body = "Cliente n√£o autorizado"
                             }
                         };
                         json = System.Text.Json.JsonSerializer.Serialize(messageNaoAutorizados);
@@ -239,12 +239,12 @@ public class Function
 
             //var transcricao = "gostaria de fazer um pix para a chave o pix arroba b m g ponto com no valor de cinquenta e cinco reais";
             var complemento = "devolver a chave pix na da frase seguinte como um tag **Chave PIX**: ";
-            Console.WriteLine("transcriÁ„o: " + transcricao); 
+            Console.WriteLine("transcri√ß√£o: " + transcricao); 
             var responseApi = await ChamarBackend(request, true, false, complemento + transcricao);
             Console.WriteLine("responseApi: " + responseApi);
-            //var responseApi = "As informaÁıes sobre PIX na frase s„o:\n\n**Chave PIX**: opix@bmg.com\n**Valor**: R$ 55,00 (cinquenta e cinco reais)";             
-            //var responseApi = "Certo! Vamos revisar as informaÁıes do PIX:\n\n**Chave PIX**: opix@bmg.com\n**Nome**: JosÈ Silva\n**InstituiÁ„o**: Banco BMG\n**Valor**: R$ 55,00\n\nPor favor, confirme se todas as informaÁıes est„o corretas digitando \"sim\" para prosseguir ou \"n„o\" para cancelar ou fazer alteraÁıes.";
-            responseApi = responseApi.Replace("\n\n", " ").Replace("\n", " ").Trim().Replace("As informaÁıes sobre PIX na frase s„o:", " ").Replace("Certo! Vamos revisar as informaÁıes do PIX:", " ").Trim();
+            //var responseApi = "As informa√ß√µes sobre PIX na frase s√£o:\n\n**Chave PIX**: opix@bmg.com\n**Valor**: R$ 55,00 (cinquenta e cinco reais)";             
+            //var responseApi = "Certo! Vamos revisar as informa√ß√µes do PIX:\n\n**Chave PIX**: opix@bmg.com\n**Nome**: Jos√© Silva\n**Institui√ß√£o**: Banco BMG\n**Valor**: R$ 55,00\n\nPor favor, confirme se todas as informa√ß√µes est√£o corretas digitando \"sim\" para prosseguir ou \"n√£o\" para cancelar ou fazer altera√ß√µes.";
+            responseApi = responseApi.Replace("\n\n", " ").Replace("\n", " ").Trim().Replace("As informa√ß√µes sobre PIX na frase s√£o:", " ").Replace("Certo! Vamos revisar as informa√ß√µes do PIX:", " ").Trim();
             
 
             string chavePix = string.Empty;
@@ -256,13 +256,13 @@ public class Function
 
             //chavePix = await ExtractValueAsync(responseApi, "Chave PIX");
             //string nomeFavorecido = await ExtractValueAsync(responseApi, "Nome");
-            //string instituicao = await ExtractValueAsync(responseApi, "InstituiÁ„o");
+            //string instituicao = await ExtractValueAsync(responseApi, "Institui√ß√£o");
             //valorPix = await ExtractValueAsync(responseApi, "Valor");
             string numberWhats = requestBody.entry[0].changes[0].value.messages[0].@from.ToString();
 
             if (!string.IsNullOrEmpty(chavePix))
             {
-                //TODO: Buscar favorecidos do cliente na api do pix e verificar se a chave mencionada est· nesses favorecidos
+                //TODO: Buscar favorecidos do cliente na api do pix e verificar se a chave mencionada est√° nesses favorecidos
 
                 if (!string.IsNullOrEmpty(valorPix) && !valorPix.Contains("frase"))
                 {
@@ -293,7 +293,7 @@ public class Function
                 var templatePixEnviado = "pix_enviado_sucesso";
                 await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templatePixEnviado);
             }
-            else if (requestBody.entry[0].changes[0].value.messages[0].button.payload.Contains("N„o"))
+            else if (requestBody.entry[0].changes[0].value.messages[0].button.payload.Contains("N√£o"))
             {
                 var templateRepita = "nao_entendi";
                 await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRepita);
@@ -386,7 +386,7 @@ public class Function
         // Remove caracteres especiais usando Regex
         string semCaracteresEspeciais = Regex.Replace(input, @"[^a-zA-Z0-9@]", "");
 
-        // Remove espaÁos em branco
+        // Remove espa√ßos em branco
         string semEspacos = semCaracteresEspeciais.Replace(" ", "");
 
         if (Regex.IsMatch(semEspacos, @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"))
@@ -455,13 +455,13 @@ public class Function
     {
         HttpClient clienthttp = new HttpClient();
 
-        // Dados para a requisiÁ„o POST
+        // Dados para a requisi√ß√£o POST
         var postDataToken = new StringContent("{\"grant_type\":\"client_credentials\"}", System.Text.Encoding.UTF8, "application/json");
 
         clienthttp.DefaultRequestHeaders.Add("Accept", "application/json");
         clienthttp.DefaultRequestHeaders.Add("Authorization", "Basic ZDc3NzM1NWQtMWQ4MC00NzFhLTkyZWEtODExODVlMzgwYjhmOmQ4ZGRmZTU4LTU0MTktNDViZS1hMmY0LWY0YzU0N2E4ZDYxNw==");
 
-        // RequisiÁ„o GET para obter o token JWT
+        // Requisi√ß√£o GET para obter o token JWT
         HttpResponseMessage TokenResponse = await clienthttp.PostAsync("https://oauth-hml.bancobmg.com.br/oauth/v1/access-token", postDataToken);
 
         TokenResponse.EnsureSuccessStatusCode();
@@ -470,10 +470,10 @@ public class Function
         BearerToken response_des = System.Text.Json.JsonSerializer.Deserialize<BearerToken>(responseBody);
         var tokenJWT = response_des.access_token;
 
-        // Adiciona o token JWT no cabeÁalho da requisiÁ„o POST
+        // Adiciona o token JWT no cabe√ßalho da requisi√ß√£o POST
         clienthttp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenJWT);
 
-        // Dados para a requisiÁ„o POST
+        // Dados para a requisi√ß√£o POST
         var postData = new StringContent(request.body, Encoding.UTF8, "application/json");
 
         HttpResponseMessage postResponse;
@@ -493,7 +493,7 @@ public class Function
         }
         else
         {
-            // RequisiÁ„o POST usando o token JWT
+            // Requisi√ß√£o POST usando o token JWT
             postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
             postResponse.EnsureSuccessStatusCode();
             var postResponseBody = await postResponse.Content.ReadAsStringAsync();
@@ -506,10 +506,10 @@ public class Function
     {
         Console.WriteLine("queryStringParameters: " + System.Text.Json.JsonSerializer.Serialize(request.queryStringParameters));
 
-        // Acessando os par‚metros da query string
+        // Acessando os par√¢metros da query string
         var queryStringParameters = request.queryStringParameters;
 
-        // Inicializando vari·veis
+        // Inicializando vari√°veis
         string mode = queryStringParameters != null && queryStringParameters.ContainsKey("hub.mode")
             ? queryStringParameters["hub.mode"]
             : null;
@@ -522,7 +522,7 @@ public class Function
             ? queryStringParameters["hub.verify_token"]
             : null;
 
-        // Verificando se o verify token È v·lido
+        // Verificando se o verify token √© v√°lido
         if (verifyToken == "leandro")
         {
             return new APIGatewayProxyResponse
@@ -558,7 +558,7 @@ public class Function
             image = new
             {
                 id = id_img,
-                caption = "Estamos desenvolvendo a extraÁ„o"
+                caption = "Estamos desenvolvendo a extra√ß√£o"
             }
         };
         json = System.Text.Json.JsonSerializer.Serialize(messageDataImg);
@@ -666,7 +666,7 @@ public class Function
         try
         {
             PutObjectResponse response = await _s3Client.PutObjectAsync(putRequest);
-            Console.WriteLine("Upload concluÌdo com sucesso!");
+            Console.WriteLine("Upload conclu√≠do com sucesso!");
         }
         catch (AmazonS3Exception e)
         {
@@ -834,7 +834,7 @@ public class Function
         return await _transcribeClient.GetTranscriptionJobAsync(describeTranscriptionJobRequest);
     }
 
-    // FunÁ„o para recuperar a transcriÁ„o quando o trabalho for concluÌdo
+    // Fun√ß√£o para recuperar a transcri√ß√£o quando o trabalho for conclu√≠do
     private async Task<string> GetTranscriptionResultAsync(string transcriptionJobName)
     {
         var status = new GetTranscriptionJobResponse();
