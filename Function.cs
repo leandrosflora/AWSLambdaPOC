@@ -33,8 +33,8 @@ public class Function
     const string _bucketName = "whatsappai";
     const string urlBuscaMedia = "https://graph.facebook.com/v20.0/";
     const string urlMetaFacebookWhatsapp = "https://graph.facebook.com/v20.0/519842974541275/messages";
-    const string tokenMetaWhatsapp = "EAARKw58BssABO7lShK8dZByUZBAMiZCEHw65KYVMVZCMzfZBmC9XMo0ror4jYeUD5VAFZBmC2lCvftp3oZA98JEYGfciZCe8lAJ1tO1Itg29lYyAoKQtn03T3IUEmgG04ZByNQtNJMcQ2MrZCEGaM3faxUa8ZBtfKLsrajAcl78VTOjEhu08e96rj34oASyl3Yk78TP";
-    string whiteList = "5511942302556, 5511949047360, 5511948671189, 5511949836043, 5511996924700, 5511976399130, 11959172222";
+    const string tokenMetaWhatsapp = "";
+    string whiteList = "";
     AmazonTranscribeServiceClient? _transcribeClient;
     AmazonS3Client? _s3Client;
     AmazonTextractClient? _textractClient;
