@@ -159,8 +159,8 @@ public class Function
                             type = "body",
                             parameters = new[]
                             {
-                                new { type = "text", text = "POC Pix BMG"},
-                                new { type = "text", text = "Banco BMG S.A"},
+                                new { type = "text", text = "POC "},
+                                new { type = "text", text = " S.A"},
                                 new { type = "text", text = chavepix}
                             }
                         }
@@ -191,9 +191,9 @@ public class Function
                             parameters = new[]
                             {
                                 new { type = "text", text = valorPix},
-                                new { type = "text", text = "POC Pix BMG"},
+                                new { type = "text", text = "POC Pix "},
                                 new { type = "text", text = chavePix},
-                                new { type = "text", text = "Banco BMG S.A"},
+                                new { type = "text", text = "Banco S.A"},
 
                             }
                         }
@@ -242,8 +242,8 @@ public class Function
             Console.WriteLine("transcrição: " + transcricao); 
             var responseApi = await ChamarBackend(request, true, false, complemento + transcricao);
             Console.WriteLine("responseApi: " + responseApi);
-            //var responseApi = "As informações sobre PIX na frase são:\n\n**Chave PIX**: opix@bmg.com\n**Valor**: R$ 55,00 (cinquenta e cinco reais)";             
-            //var responseApi = "Certo! Vamos revisar as informações do PIX:\n\n**Chave PIX**: opix@bmg.com\n**Nome**: José Silva\n**Instituição**: Banco BMG\n**Valor**: R$ 55,00\n\nPor favor, confirme se todas as informações estão corretas digitando \"sim\" para prosseguir ou \"não\" para cancelar ou fazer alterações.";
+            //var responseApi = "As informações sobre PIX na frase são:\n\n**Chave PIX**: opix@pix.com\n**Valor**: R$ 55,00 (cinquenta e cinco reais)";             
+            //var responseApi = "Certo! Vamos revisar as informações do PIX:\n\n**Chave PIX**: opix@bmg.com\n**Nome**: José Silva\n**Instituição**: Banco\n**Valor**: R$ 55,00\n\nPor favor, confirme se todas as informações estão corretas digitando \"sim\" para prosseguir ou \"não\" para cancelar ou fazer alterações.";
             responseApi = responseApi.Replace("\n\n", " ").Replace("\n", " ").Trim().Replace("As informações sobre PIX na frase são:", " ").Replace("Certo! Vamos revisar as informações do PIX:", " ").Trim();
             
 
@@ -459,10 +459,10 @@ public class Function
         var postDataToken = new StringContent("{\"grant_type\":\"client_credentials\"}", System.Text.Encoding.UTF8, "application/json");
 
         clienthttp.DefaultRequestHeaders.Add("Accept", "application/json");
-        clienthttp.DefaultRequestHeaders.Add("Authorization", "Basic ZDc3NzM1NWQtMWQ4MC00NzFhLTkyZWEtODExODVlMzgwYjhmOmQ4ZGRmZTU4LTU0MTktNDViZS1hMmY0LWY0YzU0N2E4ZDYxNw==");
+        clienthttp.DefaultRequestHeaders.Add("Authorization", "Basic ZXXXXXXXXXX");
 
         // Requisição GET para obter o token JWT
-        HttpResponseMessage TokenResponse = await clienthttp.PostAsync("https://oauth-hml.bancobmg.com.br/oauth/v1/access-token", postDataToken);
+        HttpResponseMessage TokenResponse = await clienthttp.PostAsync("https://oauth-hml.xxx.com.br/oauth/v1/access-token", postDataToken);
 
         TokenResponse.EnsureSuccessStatusCode();
         string responseBody = await TokenResponse.Content.ReadAsStringAsync();
@@ -481,20 +481,20 @@ public class Function
         if (audio && !string.IsNullOrEmpty(msg))
         {
             var postbedrock = new StringContent(msg, Encoding.UTF8, "application/json");
-            var res = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp/contexto?message=" + msg, postbedrock);
+            var res = await clienthttp.PostAsync("https://api-partners-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp/contexto?message=" + msg, postbedrock);
             res.EnsureSuccessStatusCode();
             var postResponseBody = await res.Content.ReadAsStringAsync();
             return postResponseBody;
         }
         else if (image)
         {
-            clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp/image", postData);
+            clienthttp.PostAsync("https://api-partners-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp/image", postData);
             return "";
         }
         else
         {
             // Requisição POST usando o token JWT
-            postResponse = await clienthttp.PostAsync("https://api-partners-hml.bancobmg.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
+            postResponse = await clienthttp.PostAsync("https://api-partners-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
             postResponse.EnsureSuccessStatusCode();
             var postResponseBody = await postResponse.Content.ReadAsStringAsync();
             Console.WriteLine("postResponseBody: " + postResponseBody);
