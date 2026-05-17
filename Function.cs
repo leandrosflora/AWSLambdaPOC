@@ -243,7 +243,7 @@ public class Function
             var responseApi = await ChamarBackend(request, true, false, complemento + transcricao);
             Console.WriteLine("responseApi: " + responseApi);
             //var responseApi = "As informações sobre PIX na frase são:\n\n**Chave PIX**: opix@pix.com\n**Valor**: R$ 55,00 (cinquenta e cinco reais)";             
-            //var responseApi = "Certo! Vamos revisar as informações do PIX:\n\n**Chave PIX**: opix@bmg.com\n**Nome**: José Silva\n**Instituição**: Banco\n**Valor**: R$ 55,00\n\nPor favor, confirme se todas as informações estão corretas digitando \"sim\" para prosseguir ou \"não\" para cancelar ou fazer alterações.";
+            //var responseApi = "Certo! Vamos revisar as informações do PIX:\n\n**Chave PIX**: opix@com\n**Nome**: José Silva\n**Instituição**: Banco\n**Valor**: R$ 55,00\n\nPor favor, confirme se todas as informações estão corretas digitando \"sim\" para prosseguir ou \"não\" para cancelar ou fazer alterações.";
             responseApi = responseApi.Replace("\n\n", " ").Replace("\n", " ").Trim().Replace("As informações sobre PIX na frase são:", " ").Replace("Certo! Vamos revisar as informações do PIX:", " ").Trim();
             
 
