@@ -32,7 +32,7 @@ public class Function
     string json = string.Empty;
     const string _bucketName = "whatsappai";
     const string urlBuscaMedia = "https://graph.facebook.com/v20.0/";
-    const string urlMetaFacebookWhatsapp = "https://graph.facebook.com/v20.0/519842974541275/messages";
+    const string urlMetaFacebookWhatsapp = "https://graph.facebook.com/v20.0/111111/messages";
     const string tokenMetaWhatsapp = "";
     string whiteList = "";
     AmazonTranscribeServiceClient? _transcribeClient;
@@ -481,20 +481,20 @@ public class Function
         if (audio && !string.IsNullOrEmpty(msg))
         {
             var postbedrock = new StringContent(msg, Encoding.UTF8, "application/json");
-            var res = await clienthttp.PostAsync("https://api-partners-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp/contexto?message=" + msg, postbedrock);
+            var res = await clienthttp.PostAsync("https://api-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp/contexto?message=" + msg, postbedrock);
             res.EnsureSuccessStatusCode();
             var postResponseBody = await res.Content.ReadAsStringAsync();
             return postResponseBody;
         }
         else if (image)
         {
-            clienthttp.PostAsync("https://api-partners-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp/image", postData);
+            clienthttp.PostAsync("https://api-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp/image", postData);
             return "";
         }
         else
         {
             // Requisição POST usando o token JWT
-            postResponse = await clienthttp.PostAsync("https://api-partners-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
+            postResponse = await clienthttp.PostAsync("https://api-hml.xxx.com.br/whatsapp/v1/webhook-whatsapp?hub.challenge=asdf&hub.verify_token=WhatsappAI&hub.mode=subscribe", postData);
             postResponse.EnsureSuccessStatusCode();
             var postResponseBody = await postResponse.Content.ReadAsStringAsync();
             Console.WriteLine("postResponseBody: " + postResponseBody);
