@@ -32,7 +32,7 @@ Quando o usuário envia `oi` ou uma mensagem de boas-vindas, a Lambda envia temp
 A POC é focada em Pix. Entre os comportamentos implementados estão:
 
 - quando o usuário seleciona a opção `3`, a Lambda pergunta qual é a chave Pix;
-- quando a chave `pocpix@bmg.com` é enviada, a Lambda dispara template de confirmação de favorecido;
+- quando a chave `pocpix@teste.com` é enviada, a Lambda dispara template de confirmação de favorecido;
 - quando o usuário informa um valor contendo vírgula, a Lambda envia um template de revisão com valor e chave Pix;
 - respostas de botões como `corretas`, `confirmo` e `Não` disparam os próximos templates do fluxo:
   - pergunta de valor Pix;
