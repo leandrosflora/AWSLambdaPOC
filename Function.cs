@@ -302,7 +302,7 @@ public class Function
         else if (requestBody.entry[0].changes[0].value.messages[0].text.body.Contains(','))
         {
             var templateRevisao = "revisao";
-            await EnviarTemplateRevisaoDadosPix(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao, requestBody.entry[0].changes[0].value.messages[0].text.body, "", "pocpix@bmg.com", "");
+            await EnviarTemplateRevisaoDadosPix(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateRevisao, requestBody.entry[0].changes[0].value.messages[0].text.body, "", "pocpix@teste.com", "");
         }
         else if (requestBody.entry[0].changes[0].value.messages[0].type == "request_welcome")
         {
@@ -320,10 +320,10 @@ public class Function
             var templatePerguntaQualFavorecido = "pergunta_qual_chave_pix";
             await EnviarTemplate(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templatePerguntaQualFavorecido);
         }
-        else if (requestBody.entry[0].changes[0].value.messages[0].text.body == "pocpix@bmg.com")
+        else if (requestBody.entry[0].changes[0].value.messages[0].text.body == "pocpix@teste.com")
         {
             var templateConfiFav = "confirmacao_favorecido";
-            await EnviarTemplateConfirmacaoFavorecido(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav, "", "", "pocpix@bmg.com");
+            await EnviarTemplateConfirmacaoFavorecido(requestBody.entry[0].changes[0].value.messages[0].@from.ToString(), templateConfiFav, "", "", "pocpix@teste.com");
         } 
         else if(requestBody.entry[0].changes[0].value.messages[0].text.body.ToLower() == "oi")
         {
